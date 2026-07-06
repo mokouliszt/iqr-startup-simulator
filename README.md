@@ -4,8 +4,6 @@
 
 三菱電機 MELSEC iQ-R シリーズ（R35B 基本ベース／R61P 電源ユニット／R00CPU）の**ハードウェア初期立上げ**を、ブラウザ上の 3D 操作で学べる学習用シミュレータです。ユニットのベースへの装着、端子カバーの開閉、丸形圧着端子による接地・電源配線、電源投入と LED 確認までを、実機の手順に沿って一連で体験できます。
 
-依存パッケージなしの**単一 HTML ファイル**で動作し、GitHub Pages にそのまま置いて公開できます。
-
 ## スクリーンショット
 
 | 開始画面 | 電源・接地配線（手順07） | 立上げ完了・自由観察（手順08） |
@@ -46,36 +44,6 @@
 - WebGL 対応のモダンブラウザ（Chrome / Edge / Safari / Firefox の最新版）
 - PC・スマートフォン・タブレットいずれも可
 - 3D ライブラリ [three.js](https://threejs.org/) r128 を CDN（cdnjs）から読み込みます。オフラインで使う場合は下記「オフライン利用」を参照してください。
-
-## ローカルで動かす
-
-単一ファイルですが、`file://` 直開きだと一部ブラウザで CDN 取得が制限される場合があるため、簡易サーバ経由での表示を推奨します。
-
-```bash
-# リポジトリを取得
-git clone https://github.com/mokouliszt/iqr-startup-simulator.git
-cd iqr-startup-simulator
-
-# 任意の簡易サーバで配信（例）
-python -m http.server 8000
-# → ブラウザで http://localhost:8000/ を開く
-```
-
-## GitHub Pages で公開する
-
-単一 HTML なので、リポジトリ直下に `index.html` を置くだけで公開できます。
-
-1. リポジトリのルートに `index.html` と `screenshots/` を配置して push
-2. **Settings → Pages** を開く
-3. **Source** を `Deploy from a branch`、Branch を `main` / `(root)` に設定して保存
-4. 数十秒後、`https://<ユーザー名>.github.io/<リポジトリ名>/` で公開されます
-
-## オフライン利用
-
-インターネットに接続できない環境で使う場合は、three.js をローカルに同梱します。
-
-1. [three.js r128 の `three.min.js`](https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js) をダウンロードしてリポジトリに配置
-2. `index.html` の `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">` を `<script src="three.min.js">` に書き換え
 
 ## 技術構成
 
