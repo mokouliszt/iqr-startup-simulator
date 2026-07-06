@@ -164,7 +164,7 @@
   <div class="hgrp">
     <h1>MELSEC iQ-R 立上げシミュレータ</h1>
     <div class="sub">
-      <span class="chip">R35B 基本ベース</span><span class="chip">R61P 電源</span><span class="chip">R00CPU</span><span class="chip">HW初期立上げ</span>
+      <span class="chip">R33B 基本ベース</span><span class="chip">R61P 電源</span><span class="chip">R00CPU</span><span class="chip">HW初期立上げ</span>
     </div>
   </div>
   <div id="stepcode">手順 <b id="scNow">00</b><span style="opacity:.5">/</span><span id="scMax">08</span></div>
@@ -205,7 +205,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 /* =========================================================================
-   MELSEC iQ-R Hardware Setup Trainer  (R35B + R61P + R00CPU)
+   MELSEC iQ-R Hardware Setup Trainer  (R33B + R61P + R00CPU)
    単一HTML / Three.js r128 / GitHub Pages・Androidブラウザ動作
    ========================================================================= */
 "use strict";
@@ -277,6 +277,7 @@ const M = {
   pcbDark:  new THREE.MeshStandardMaterial({color:0x14582b, roughness:.7,  metalness:.05}),
   screw:    new THREE.MeshStandardMaterial({color:0xe8ebee, roughness:.32, metalness:.38}),
   connBlk:  new THREE.MeshStandardMaterial({color:0x101114, roughness:.55, metalness:.05}),
+  connWhite:new THREE.MeshStandardMaterial({color:0xe9e7e0, roughness:.5, metalness:.05}),
   sleeve:   new THREE.MeshStandardMaterial({color:0xeceff1, roughness:.4,  metalness:.05}),
   copper:   new THREE.MeshStandardMaterial({color:0xdfe3e7, roughness:.34, metalness:.4}),
   wireW:    new THREE.MeshStandardMaterial({color:0xf2f2f2, roughness:.55}),
@@ -313,70 +314,73 @@ const world = new THREE.Group();
 scene.add(world);
 world.position.y = 0.05;
 
-/* ---- DINレール & ベースユニット R35B ---- */
-const BASE_W = 3.5, BASE_H = 1.16, BASE_T = 0.07;
+/* ---- DINレール & ベースユニット R33B ---- */
+const BASE_W = 2.3, BASE_H = 1.16, BASE_T = 0.07;
+const BASE_CX = -0.70;   // ベース中心(スロット群の中心に合わせる)
 const baseGrp = new THREE.Group();
 world.add(baseGrp);
 
 {
   // アルミベース板
   const plate = new THREE.Mesh(new THREE.BoxGeometry(BASE_W, BASE_H, BASE_T), M.alu);
-  plate.position.z = -BASE_T/2;
+  plate.position.set(BASE_CX, 0, -BASE_T/2);
   baseGrp.add(plate);
   // DINレール
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(BASE_W+0.5, 0.32, 0.06), new THREE.MeshStandardMaterial({color:0xb9bcbf, roughness:.3, metalness:.85}));
-  rail.position.set(0, -0.05, -BASE_T-0.032);
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(BASE_W+0.6, 0.32, 0.06), new THREE.MeshStandardMaterial({color:0xb9bcbf, roughness:.3, metalness:.85}));
+  rail.position.set(BASE_CX, -0.05, -BASE_T-0.032);
   baseGrp.add(rail);
   const railLip1 = rail.clone(); railLip1.scale.set(1,0.18,1.6); railLip1.position.y = 0.11; baseGrp.add(railLip1);
   const railLip2 = railLip1.clone(); railLip2.position.y = -0.21; baseGrp.add(railLip2);
 
   // 緑基板
   const pcb = new THREE.Mesh(new THREE.BoxGeometry(BASE_W-0.16, BASE_H-0.18, 0.02), M.pcb);
-  pcb.position.z = 0.012;
+  pcb.position.set(BASE_CX, 0, 0.012);
   baseGrp.add(pcb);
 }
 
-/* スロット定義 */
+/* スロット定義(実機R33B:電源+CPU+I/O 3スロットを実機ピッチで密着配置) */
 const SLOTS = {
-  POWER:{x:-1.30, w:0.60, label:"POWER"},
-  CPU:  {x:-0.865, w:0.32, label:"CPU"},
-  IO0:  {x:-0.22, w:0.44, label:"I/O 0"},
-  IO1:  {x: 0.26, w:0.44, label:"I/O 1"},
-  IO2:  {x: 0.74, w:0.44, label:"I/O 2"},
+  POWER:{x:-1.30,  w:0.56, label:"POWER"},
+  CPU:  {x:-0.865, w:0.30, label:"CPU"},
+  IO0:  {x:-0.565, w:0.30, label:"I/O 0"},
+  IO1:  {x:-0.265, w:0.30, label:"I/O 1"},
+  IO2:  {x: 0.035, w:0.30, label:"I/O 2"},
 };
 {
   // スロット区切り線 + コネクタ + ラベル
   for(const k in SLOTS){
     const s = SLOTS[k];
-    // コネクタ
-    const con = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.62, 0.06), M.connBlk);
+    const isPwr = (k==="POWER");
+    // コネクタ(電源スロットは大型)
+    const cw = isPwr ? 0.14 : 0.08;
+    const con = new THREE.Mesh(new THREE.BoxGeometry(cw, isPwr?0.7:0.6, 0.06), isPwr ? M.connWhite : M.connBlk);
     con.position.set(s.x, -0.02, 0.05);
     baseGrp.add(con);
-    const conIn = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.56, 0.062), M.pcbDark);
+    const conIn = new THREE.Mesh(new THREE.BoxGeometry(cw*0.42, (isPwr?0.7:0.6)-0.06, 0.062), isPwr ? M.connBlk : M.pcbDark);
     conIn.position.copy(con.position); conIn.position.z += 0.002;
     baseGrp.add(conIn);
-    // 白ラベル
+    // 白ラベル(コネクタ中央上)
     const lb = labelPlane(0.3, 0.09, (g,w,h)=>{
       g.fillStyle="#fff"; g.fillRect(0,0,w,h);
-      g.fillStyle="#222"; g.font=`bold ${h*0.62}px Arial`;
+      g.fillStyle="#222"; g.font=`bold ${h*0.6}px Arial`;
       g.textAlign="center"; g.textBaseline="middle";
       g.fillText(s.label, w/2, h/2+2);
     });
-    lb.position.set(s.x + (k==="POWER"? -0.11 : 0.13), 0.40, 0.026);
+    lb.position.set(s.x, 0.40, 0.026);
     baseGrp.add(lb);
-    // 区切り白線
-    const div = new THREE.Mesh(new THREE.PlaneGeometry(0.008, BASE_H-0.2), new THREE.MeshBasicMaterial({color:0xeeeeee}));
-    div.position.set(s.x + s.w/2 - 0.02, 0, 0.024);
+    // 区切り白線(スロット境界)
+    const div = new THREE.Mesh(new THREE.PlaneGeometry(0.008, BASE_H-0.22), new THREE.MeshBasicMaterial({color:0xeeeeee}));
+    div.position.set(s.x + s.w/2, 0, 0.024);
     if(k!=="IO2") baseGrp.add(div);
   }
-  // R35B 銘板
+  // R33B 銘板(基板右下)
   const nm = labelPlane(0.26, 0.09, (g,w,h)=>{
     g.fillStyle="#fff"; g.fillRect(0,0,w,h);
     g.fillStyle="#222"; g.font=`bold ${h*0.6}px Arial`;
     g.textAlign="center"; g.textBaseline="middle";
-    g.fillText("R35B", w/2, h/2+2);
+    g.fillText("R33B", w/2, h/2+2);
   });
-  nm.position.set(1.5, -0.42, 0.026);
+  nm.position.set(0.30, -0.42, 0.026);
   baseGrp.add(nm);
 }
 
@@ -700,7 +704,7 @@ function setMarker(pos, size=0.3){
    カメラ制御(自作オービット・タッチ対応)
    ========================================================================= */
 const cam = {
-  target: V3(0, 0, 0.3),
+  target: V3(-0.92, 0, 0.3),
   r: 4.4, theta: 0.5, phi: 1.25, // theta:方位角, phi:天頂角
 };
 function applyCam(){
@@ -722,7 +726,7 @@ function camTo(target, r, theta, phi, dur=1.1, onDone){
     cam.phi = s.ph + (phi-s.ph)*k;
   }, onDone);
 }
-const HOME = {t:V3(-0.2,-0.05,0.3), r:4.6, th:0.45, ph:1.22};
+const HOME = {t:V3(-0.92,-0.05,0.3), r:4.7, th:0.45, ph:1.22};
 
 /* 入力 */
 let dragging=false, moved=0, px=0, py=0, pinch0=0;
@@ -745,10 +749,11 @@ el.addEventListener("pointerup", e=>{
 });
 el.addEventListener("wheel", e=>{
   e.preventDefault();
-  // deltaMode: 0=ピクセル, 1=行, 2=ページ を実量に正規化
-  const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
-  const dy = Math.max(-120, Math.min(120, e.deltaY * unit));
-  cam.r *= Math.exp(dy * 0.0012);
+  let d = e.deltaY;
+  if(e.deltaMode === 1) d *= 16;               // 行単位 → px相当に換算
+  else if(e.deltaMode === 2) d *= innerHeight;  // ページ単位
+  d = Math.max(-50, Math.min(50, d));           // 1イベントあたりの変化量を制限
+  cam.r *= Math.exp(d * 0.0016);                // スクロール量に比例した滑らかなズーム
 }, {passive:false});
 el.addEventListener("touchstart", e=>{
   if(e.touches.length===2){
@@ -815,7 +820,7 @@ const steps = [
     camTo(HOME.t, HOME.r, HOME.th, HOME.ph, 1.2);
     instruct("GUIDE",
       "MELSEC iQ-R のハードウェア初期立上げを体験します。",
-      "R35B基本ベースはDINレールに取付済み。ここから電源ユニット・CPUユニットの装着と配線を行います。");
+      "R33B基本ベースはDINレールに取付済み。ここから電源ユニット・CPUユニットの装着と配線を行います。");
     caption("画面ドラッグで回転 / ピンチ・ホイールでズームできます。");
     nextBtn(true, "開始");
   }
@@ -1030,7 +1035,7 @@ document.getElementById("btnFree").onclick = ()=>{
   document.getElementById("done").style.display="none";
   instruct("FREE", "自由観察モード:ドラッグで回転、ピンチでズーム。", "「最初から」でもう一度手順を練習できます。");
   nextBtn(false);
-  camTo(V3(-0.2,0,0.3), 4.2, -0.4, 1.1, 1.4);
+  camTo(V3(-0.85,0,0.3), 4.3, -0.4, 1.1, 1.4);
 };
 
 /* =========================================================================
