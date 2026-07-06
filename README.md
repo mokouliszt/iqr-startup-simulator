@@ -1,5 +1,11 @@
 # MELSEC iQ-R 立上げシミュレータ
 
+
+[![GitHub Pages](https://img.shields.io/badge/demo-live-c8102e?style=for-the-badge&logo=githubpages&logoColor=white)](https://mokouliszt.github.io/iqr-startup-simulator/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-1e2126?style=for-the-badge)](LICENSE)
+[![Three.js](https://img.shields.io/badge/three.js-r128-1e2126?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
+[![No build step](https://img.shields.io/badge/build-none%20required-1e2126?style=for-the-badge)](#)
+
 *An interactive 3D trainer for the hardware startup of a Mitsubishi MELSEC iQ-R PLC — runs entirely in the browser.*
 
 三菱電機 MELSEC iQ-R シリーズ（R33B 基本ベース／R61P 電源ユニット／R00CPU）の**ハードウェア初期立上げ**を、ブラウザ上の 3D 操作で学べる学習用シミュレータです。ユニットのベースへの装着、端子カバーの開閉、丸形圧着端子による接地・電源配線、電源投入と LED 確認までを、実機の手順に沿って一連で体験できます。
