@@ -6,14 +6,6 @@
 
 依存パッケージなしの**単一 HTML ファイル**で動作し、GitHub Pages にそのまま置いて公開できます。
 
-## デモ
-
-GitHub Pages で公開する場合、URL は次のようになります（リポジトリ名は任意）。
-
-```
-https://mokouliszt.github.io/iqr-startup-simulator/
-```
-
 ## スクリーンショット
 
 | 開始画面 | 電源・接地配線（手順07） | 立上げ完了・自由観察（手順08） |
