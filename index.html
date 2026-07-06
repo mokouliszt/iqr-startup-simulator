@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MELSEC iQ-R 立上げシミュレータ | R00CPU Hardware Setup Trainer</title>
+<style>
+  :root{
+    --crimson:#c8102e;
+    --crimson-dim:#8a0b20;
+    --ink:#15171a;
+    --panel:#1e2126;
+    --panel-2:#262a30;
+    --line:#3a4048;
+    --txt:#e8eaed;
+    --txt-dim:#9aa3ad;
+    --ok:#37b24d;
+    --amber:#f5a623;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic UI",Meiryo,system-ui,sans-serif;
+    background:radial-gradient(120% 90% at 50% 30%, #f2f3f5 0%, #d9dce0 55%, #b9bec5 100%);
+    color:var(--txt);
+    touch-action:none;
+    user-select:none;-webkit-user-select:none;
+  }
+  #scene{position:fixed;inset:0}
+  canvas{display:block}
+
+  /* ---- header: 手順書ヘッダ ---- */
+  #hdr{
+    position:fixed;top:0;left:0;right:0;z-index:10;
+    display:flex;align-items:stretch;gap:0;
+    background:linear-gradient(180deg, rgba(21,23,26,.96), rgba(21,23,26,.88));
+    border-bottom:2px solid var(--crimson);
+    pointer-events:none;
+  }
+  #hdr .band{width:10px;background:var(--crimson)}
+  #hdr .hgrp{padding:8px 12px 7px;min-width:0}
+  #hdr h1{
+    font-size:14px;font-weight:700;letter-spacing:.06em;line-height:1.2;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  #hdr .sub{
+    margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+    font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;
+    font-size:10px;color:var(--txt-dim);letter-spacing:.05em;
+  }
+  .chip{border:1px solid var(--line);border-radius:3px;padding:1px 6px;background:var(--panel-2);color:#cfd5db}
+  #stepcode{
+    margin-left:auto;align-self:center;padding:6px 14px;
+    font-family:ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.1em;
+    color:#fff;white-space:nowrap;
+  }
+  #stepcode b{color:var(--crimson);font-size:16px}
+
+  /* ---- progress squares ---- */
+  #prog{
+    position:fixed;z-index:10;top:56px;left:12px;display:flex;gap:5px;pointer-events:none;
+  }
+  #prog i{
+    width:16px;height:5px;border-radius:1px;background:rgba(21,23,26,.25);
+    outline:1px solid rgba(21,23,26,.15);
+  }
+  #prog i.done{background:var(--crimson)}
+  #prog i.cur{background:#fff;outline:2px solid var(--crimson)}
+
+  /* ---- subtitle bar(動画字幕風・シグネチャ要素) ---- */
+  #cap{
+    position:fixed;left:50%;bottom:118px;transform:translateX(-50%);
+    max-width:min(680px,92vw);z-index:10;pointer-events:none;
+    background:rgba(60,63,66,.88);
+    color:#fff;text-align:center;
+    padding:8px 18px;font-size:14px;line-height:1.7;
+    box-shadow:0 2px 10px rgba(0,0,0,.25);
+    letter-spacing:.02em;
+    transition:opacity .3s;
+  }
+  #cap.hide{opacity:0}
+
+  /* ---- bottom instruction panel ---- */
+  #panel{
+    position:fixed;left:0;right:0;bottom:0;z-index:11;
+    background:linear-gradient(180deg, rgba(30,33,38,.97), rgba(21,23,26,.99));
+    border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom,0));
+  }
+  #panel .row{display:flex;align-items:center;gap:12px;max-width:760px;margin:0 auto}
+  #act{
+    flex:1;min-width:0;font-size:13px;line-height:1.55;color:var(--txt);
+  }
+  #act .tag{
+    display:inline-block;font-family:ui-monospace,Consolas,monospace;font-size:10px;
+    color:var(--crimson);border:1px solid var(--crimson);border-radius:2px;
+    padding:0 5px;margin-right:8px;letter-spacing:.12em;vertical-align:1px;
+  }
+  #act .note{display:block;margin-top:3px;font-size:11px;color:var(--txt-dim)}
+  .btn{
+    flex-shrink:0;appearance:none;border:none;cursor:pointer;
+    font-family:inherit;font-weight:700;font-size:13px;letter-spacing:.08em;
+    padding:11px 20px;border-radius:4px;color:#fff;
+    background:var(--crimson);
+    box-shadow:0 2px 0 var(--crimson-dim);
+    transition:transform .05s, filter .15s;
+  }
+  .btn:active{transform:translateY(2px);box-shadow:none}
+  .btn.ghost{
+    background:var(--panel-2);box-shadow:0 2px 0 #101215;color:#cfd5db;
+    border:1px solid var(--line);font-weight:500;
+  }
+  .btn[disabled]{opacity:.35;pointer-events:none}
+  #btnNext.pulse{animation:bp 1.4s ease-in-out infinite}
+  @keyframes bp{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+
+  /* ---- corner tools ---- */
+  #tools{position:fixed;right:10px;top:56px;z-index:10;display:flex;flex-direction:column;gap:6px}
+  #tools button{
+    appearance:none;border:1px solid rgba(21,23,26,.25);cursor:pointer;
+    background:rgba(255,255,255,.82);color:#15171a;
+    font-family:inherit;font-size:11px;padding:7px 10px;border-radius:4px;
+    backdrop-filter:blur(4px);
+  }
+
+  /* ---- LED legend (完了時) ---- */
+  #done{
+    position:fixed;inset:0;z-index:20;display:none;
+    align-items:center;justify-content:center;
+    background:rgba(15,16,18,.55);backdrop-filter:blur(3px);
+  }
+  #done .card{
+    width:min(420px,88vw);background:var(--panel);border:1px solid var(--line);
+    border-top:3px solid var(--ok);border-radius:6px;padding:22px 22px 18px;
+  }
+  #done h2{font-size:16px;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:9px}
+  #done h2::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
+  #done p{font-size:12.5px;line-height:1.8;color:var(--txt-dim)}
+  #done .card .btns{display:flex;gap:10px;margin-top:16px}
+
+  /* ---- hint toast ---- */
+  #hint{
+    position:fixed;top:86px;left:50%;transform:translateX(-50%);z-index:10;
+    background:rgba(200,16,46,.92);color:#fff;font-size:12px;
+    padding:6px 14px;border-radius:20px;pointer-events:none;opacity:0;
+    transition:opacity .3s;white-space:nowrap;
+  }
+  #hint.show{opacity:1}
+
+  @media (max-width:560px){
+    #hdr h1{font-size:12px}
+    #hdr .sub .chip:nth-child(n+4){display:none}
+    #cap{bottom:132px;font-size:12.5px;padding:7px 12px}
+    #act{font-size:12px}
+    .btn{padding:11px 16px;font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<header id="hdr">
+  <div class="band"></div>
+  <div class="hgrp">
+    <h1>MELSEC iQ-R 立上げシミュレータ</h1>
+    <div class="sub">
+      <span class="chip">R35B 基本ベース</span><span class="chip">R61P 電源</span><span class="chip">R00CPU</span><span class="chip">HW初期立上げ</span>
+    </div>
+  </div>
+  <div id="stepcode">手順 <b id="scNow">00</b><span style="opacity:.5">/</span><span id="scMax">08</span></div>
+</header>
+
+<div id="prog"></div>
+
+<div id="tools">
+  <button id="btnView">視点リセット</button>
+  <button id="btnReset">最初から</button>
+</div>
+
+<div id="cap" class="hide"></div>
+<div id="hint">対象が見つかりません。赤いマーカー付近をタップしてください</div>
+
+<div id="panel">
+  <div class="row">
+    <div id="act"></div>
+    <button class="btn" id="btnNext">開始</button>
+  </div>
+</div>
+
+<div id="done">
+  <div class="card">
+    <h2>立上げ完了 — READY</h2>
+    <p id="doneTxt">
+      POWER LED(緑)・READY LED(緑)の点灯を確認しました。<br>
+      ドラッグで回転、ピンチ/ホイールでズームして装置を自由に観察できます。<br>
+      実機ではこの後、GX Works3 を USB/Ethernet で接続し、パラメータ書込み・診断を行います。
+    </p>
+    <div class="btns">
+      <button class="btn ghost" id="btnFree">自由に観察する</button>
+      <button class="btn" id="btnAgain">もう一度</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =========================================================================
+   MELSEC iQ-R Hardware Setup Trainer  (R35B + R61P + R00CPU)
+   単一HTML / Three.js r128 / GitHub Pages・Androidブラウザ動作
+   ========================================================================= */
+"use strict";
+
+/* ---------- 基本セットアップ ---------- */
+const container = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.05, 60);
+/* 縦画面でも水平方向の視野を確保する(スマホ対応) */
+function fitFov(){
+  const a = innerWidth/innerHeight;
+  const v = 2*Math.atan(Math.tan(44*Math.PI/360)/a)*180/Math.PI;
+  camera.fov = Math.min(Math.max(v, 40), 80);
+  camera.updateProjectionMatrix();
+}
+fitFov();
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 0.95));
+const key = new THREE.DirectionalLight(0xffffff, 0.85);
+key.position.set(3, 5, 6);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xdfe6ff, 0.3);
+fill.position.set(-5, 2, -3);
+scene.add(fill);
+
+/* ---------- ユーティリティ ---------- */
+const V3 = (x,y,z)=>new THREE.Vector3(x,y,z);
+const easeIO = t=>t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+const easeOut = t=>1-Math.pow(1-t,3);
+
+const tweens = [];
+function tween(dur, fn, onDone, ease=easeIO){
+  tweens.push({t:0, dur, fn, onDone, ease});
+}
+function tick(dt){
+  for(let i=tweens.length-1;i>=0;i--){
+    const tw = tweens[i];
+    tw.t += dt;
+    const k = Math.min(tw.t/tw.dur, 1);
+    tw.fn(tw.ease(k));
+    if(k>=1){ tweens.splice(i,1); tw.onDone && tw.onDone(); }
+  }
+}
+function delay(sec, fn){ tween(sec, ()=>{}, fn); }
+
+function canvasTex(w, h, draw){
+  const c = document.createElement("canvas");
+  c.width=w; c.height=h;
+  draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4;
+  return t;
+}
+
+/* ---------- マテリアル ---------- */
+const M = {
+  red:      new THREE.MeshStandardMaterial({color:0xc8102e, roughness:.45, metalness:.05}),
+  redDark:  new THREE.MeshStandardMaterial({color:0x9c0c22, roughness:.5,  metalness:.05}),
+  black:    new THREE.MeshStandardMaterial({color:0x17181c, roughness:.4,  metalness:.1}),
+  darkGray: new THREE.MeshStandardMaterial({color:0x33363d, roughness:.5,  metalness:.1}),
+  charcoal: new THREE.MeshStandardMaterial({color:0x24262b, roughness:.5,  metalness:.08}),
+  alu:      new THREE.MeshStandardMaterial({color:0xd8dadc, roughness:.35, metalness:.75}),
+  pcb:      new THREE.MeshStandardMaterial({color:0x1f7a3d, roughness:.65, metalness:.05}),
+  pcbDark:  new THREE.MeshStandardMaterial({color:0x14582b, roughness:.7,  metalness:.05}),
+  screw:    new THREE.MeshStandardMaterial({color:0xe8ebee, roughness:.32, metalness:.38}),
+  connBlk:  new THREE.MeshStandardMaterial({color:0x101114, roughness:.55, metalness:.05}),
+  sleeve:   new THREE.MeshStandardMaterial({color:0xeceff1, roughness:.4,  metalness:.05}),
+  copper:   new THREE.MeshStandardMaterial({color:0xdfe3e7, roughness:.34, metalness:.4}),
+  wireW:    new THREE.MeshStandardMaterial({color:0xf2f2f2, roughness:.55}),
+  wireR:    new THREE.MeshStandardMaterial({color:0xd0342c, roughness:.55}),
+  ledOff:   new THREE.MeshBasicMaterial({color:0x2b2e33}),
+  ledGreen: new THREE.MeshBasicMaterial({color:0x39e262}),
+};
+/* 緑/黄アース線テクスチャ(縦縞=電線の長手方向に走る縞) */
+const gyTex = canvasTex(16, 128, (g,w,h)=>{
+  // 円周方向(キャンバスの縦)で色を分ける → 長手方向に一定 = 縦縞
+  const n = 6;
+  for(let i=0;i<n;i++){
+    g.fillStyle = (i%2===0) ? "#1f9d3a" : "#f3d21b";
+    g.fillRect(0, Math.floor(i*h/n), w, Math.ceil(h/n)+1);
+  }
+});
+gyTex.wrapS = gyTex.wrapT = THREE.RepeatWrapping;
+gyTex.repeat.set(1,1);
+M.wireGY = new THREE.MeshStandardMaterial({map:gyTex, roughness:.6});
+
+/* ---------- 文字テクスチャ生成 ---------- */
+function labelPlane(w, h, draw, transparent=true){
+  const px = 512;
+  const tex = canvasTex(px, Math.round(px*h/w), draw);
+  const m = new THREE.MeshBasicMaterial({map:tex, transparent});
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(w,h), m);
+  return p;
+}
+
+/* =========================================================================
+   モデル構築
+   ========================================================================= */
+const world = new THREE.Group();
+scene.add(world);
+world.position.y = 0.05;
+
+/* ---- DINレール & ベースユニット R35B ---- */
+const BASE_W = 3.5, BASE_H = 1.16, BASE_T = 0.07;
+const baseGrp = new THREE.Group();
+world.add(baseGrp);
+
+{
+  // アルミベース板
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(BASE_W, BASE_H, BASE_T), M.alu);
+  plate.position.z = -BASE_T/2;
+  baseGrp.add(plate);
+  // DINレール
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(BASE_W+0.5, 0.32, 0.06), new THREE.MeshStandardMaterial({color:0xb9bcbf, roughness:.3, metalness:.85}));
+  rail.position.set(0, -0.05, -BASE_T-0.032);
+  baseGrp.add(rail);
+  const railLip1 = rail.clone(); railLip1.scale.set(1,0.18,1.6); railLip1.position.y = 0.11; baseGrp.add(railLip1);
+  const railLip2 = railLip1.clone(); railLip2.position.y = -0.21; baseGrp.add(railLip2);
+
+  // 緑基板
+  const pcb = new THREE.Mesh(new THREE.BoxGeometry(BASE_W-0.16, BASE_H-0.18, 0.02), M.pcb);
+  pcb.position.z = 0.012;
+  baseGrp.add(pcb);
+}
+
+/* スロット定義 */
+const SLOTS = {
+  POWER:{x:-1.30, w:0.60, label:"POWER"},
+  CPU:  {x:-0.865, w:0.32, label:"CPU"},
+  IO0:  {x:-0.22, w:0.44, label:"I/O 0"},
+  IO1:  {x: 0.26, w:0.44, label:"I/O 1"},
+  IO2:  {x: 0.74, w:0.44, label:"I/O 2"},
+};
+{
+  // スロット区切り線 + コネクタ + ラベル
+  for(const k in SLOTS){
+    const s = SLOTS[k];
+    // コネクタ
+    const con = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.62, 0.06), M.connBlk);
+    con.position.set(s.x, -0.02, 0.05);
+    baseGrp.add(con);
+    const conIn = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.56, 0.062), M.pcbDark);
+    conIn.position.copy(con.position); conIn.position.z += 0.002;
+    baseGrp.add(conIn);
+    // 白ラベル
+    const lb = labelPlane(0.3, 0.09, (g,w,h)=>{
+      g.fillStyle="#fff"; g.fillRect(0,0,w,h);
+      g.fillStyle="#222"; g.font=`bold ${h*0.62}px Arial`;
+      g.textAlign="center"; g.textBaseline="middle";
+      g.fillText(s.label, w/2, h/2+2);
+    });
+    lb.position.set(s.x + (k==="POWER"? -0.11 : 0.13), 0.40, 0.026);
+    baseGrp.add(lb);
+    // 区切り白線
+    const div = new THREE.Mesh(new THREE.PlaneGeometry(0.008, BASE_H-0.2), new THREE.MeshBasicMaterial({color:0xeeeeee}));
+    div.position.set(s.x + s.w/2 - 0.02, 0, 0.024);
+    if(k!=="IO2") baseGrp.add(div);
+  }
+  // R35B 銘板
+  const nm = labelPlane(0.26, 0.09, (g,w,h)=>{
+    g.fillStyle="#fff"; g.fillRect(0,0,w,h);
+    g.fillStyle="#222"; g.font=`bold ${h*0.6}px Arial`;
+    g.textAlign="center"; g.textBaseline="middle";
+    g.fillText("R35B", w/2, h/2+2);
+  });
+  nm.position.set(1.5, -0.42, 0.026);
+  baseGrp.add(nm);
+}
+
+/* ---- 電源ユニット R61P ---- */
+const PSU = {w:0.56, h:1.06, d:0.84};
+const psuGrp = new THREE.Group();
+world.add(psuGrp);
+const psuSeat = V3(SLOTS.POWER.x, 0, PSU.d/2 + 0.012);
+const psuFloat = V3(SLOTS.POWER.x + 0.05, 0.92, 1.15);
+psuGrp.position.copy(psuFloat);
+psuGrp.rotation.set(0.22, 0.35, 0);
+
+let psuCoverPivot, psuScrews = {}, psuHits = {}, psuPowerLED, psuTermLabel;
+{
+  const g = psuGrp;
+  // 本体(赤)
+  const body = new THREE.Mesh(new THREE.BoxGeometry(PSU.w, PSU.h, PSU.d), M.red);
+  g.add(body);
+  // 放熱スリット風の側面濃色帯
+  const slit = new THREE.Mesh(new THREE.BoxGeometry(0.002, PSU.h*0.8, PSU.d*0.8), M.redDark);
+  slit.position.x = -PSU.w/2 - 0.001; g.add(slit);
+  const faceZ = PSU.d/2 + 0.001;
+
+  // 黒ヘッダパネル(上部)
+  const hdr = new THREE.Mesh(new THREE.BoxGeometry(PSU.w*0.98, 0.36, 0.03), M.black);
+  hdr.position.set(0, PSU.h/2 - 0.19, faceZ);
+  g.add(hdr);
+  const hdrLb = labelPlane(PSU.w*0.94, 0.32, (g2,w,h)=>{
+    g2.clearRect(0,0,w,h);
+    g2.fillStyle="#fff";
+    g2.font=`bold ${h*0.135}px Arial`; g2.textAlign="left";
+    g2.fillText("MITSUBISHI", w*0.17, h*0.2);
+    g2.fillText("ELECTRIC",   w*0.17, h*0.34);
+    g2.font=`bold ${h*0.11}px Arial`; g2.textAlign="right";
+    g2.fillText("POWER", w*0.95, h*0.28);
+    g2.textAlign="left";
+    g2.font=`bold ${h*0.17}px Arial`;
+    g2.fillText("R61P", w*0.05, h*0.58);
+    g2.font=`${h*0.085}px Arial`; g2.fillStyle="#cfd5db";
+    g2.fillText("INPUT 100-240VAC", w*0.05, h*0.74);
+    g2.fillText("50/60Hz 130VA",    w*0.05, h*0.84);
+    g2.fillText("OUTPUT 5VDC 6.5A", w*0.05, h*0.94);
+    // 三菱マーク
+    g2.fillStyle="#e33"; const cx=w*0.09, cy=h*0.26, r=h*0.075;
+    for(let i=0;i<3;i++){
+      const a=-Math.PI/2 + i*2*Math.PI/3;
+      g2.beginPath();
+      g2.moveTo(cx+Math.cos(a)*r*1.2, cy+Math.sin(a)*r*1.2);
+      g2.lineTo(cx+Math.cos(a+2.4)*r*.62, cy+Math.sin(a+2.4)*r*.62);
+      g2.lineTo(cx, cy);
+      g2.lineTo(cx+Math.cos(a-2.4)*r*.62, cy+Math.sin(a-2.4)*r*.62);
+      g2.closePath(); g2.fill();
+    }
+  });
+  hdrLb.position.set(0, PSU.h/2 - 0.19, faceZ + 0.017);
+  g.add(hdrLb);
+  // POWER LED
+  psuPowerLED = new THREE.Mesh(new THREE.PlaneGeometry(0.045,0.02), M.ledOff);
+  psuPowerLED.position.set(PSU.w*0.30, PSU.h/2 - 0.115, faceZ + 0.018);
+  g.add(psuPowerLED);
+
+  // 端子台エリア(下部前面) — 凹み
+  const recess = new THREE.Mesh(new THREE.BoxGeometry(PSU.w*0.96, 0.62, 0.02), M.redDark);
+  recess.position.set(0, -0.20, faceZ - 0.004);
+  g.add(recess);
+  // 端子台(黒)
+  const tblock = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.60, 0.05), M.connBlk);
+  tblock.position.set(0.155, -0.20, faceZ + 0.012);
+  g.add(tblock);
+  // ねじ6本: ERR+, ERR-, FG, LG, N, L
+  const names = ["ERR1","ERR2","FG","LG","N","L"];
+  const sGeo = new THREE.CylinderGeometry(0.036, 0.036, 0.028, 20);
+  const headTex = canvasTex(64,64,(g2,w,h)=>{
+    g2.fillStyle="#eef1f4"; g2.fillRect(0,0,w,h);
+    g2.strokeStyle="#8f959b"; g2.lineWidth=6;
+    g2.beginPath(); g2.moveTo(w*0.15,h/2); g2.lineTo(w*0.85,h/2);
+    g2.moveTo(w/2,h*0.15); g2.lineTo(w/2,h*0.85); g2.stroke();
+  });
+  const headMat = new THREE.MeshStandardMaterial({map:headTex, roughness:.34, metalness:.38});
+  names.forEach((nm,i)=>{
+    const sc = new THREE.Mesh(sGeo, [M.screw, headMat, M.screw]);
+    sc.rotation.x = Math.PI/2;
+    sc.position.set(0.155, 0.055 - i*0.101, faceZ + 0.04);
+    g.add(sc);
+    psuScrews[nm] = sc;
+    // 指タップ用の拡大ヒット領域(不可視)
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.095, 0.2),
+      new THREE.MeshBasicMaterial({visible:false}));
+    hit.position.copy(sc.position);
+    g.add(hit);
+    psuHits[nm] = hit;
+  });
+  // 端子ラベル
+  psuTermLabel = labelPlane(0.26, 0.60, (g2,w,h)=>{
+    g2.clearRect(0,0,w,h);
+    g2.fillStyle="#fff"; g2.textAlign="right";
+    const fh = h*0.052;
+    g2.font=`bold ${fh}px Arial`;
+    g2.fillText("ERR",  w*0.9, h*0.06);
+    g2.font=`${fh*0.85}px Arial`;
+    g2.fillText("24VDC 0.5A", w*0.9, h*0.23);
+    g2.font=`bold ${fh}px Arial`;
+    g2.fillText("(FG)", w*0.9, h*0.415);
+    g2.fillText("(LG)", w*0.9, h*0.585);
+    g2.fillText("N", w*0.9, h*0.75);
+    g2.fillText("L", w*0.9, h*0.92);
+    g2.font=`${fh*0.8}px Arial`; g2.textAlign="left";
+    g2.fillText("INPUT", w*0.05, h*0.78);
+    g2.fillText("100-240", w*0.05, h*0.86);
+    g2.fillText("VAC", w*0.05, h*0.94);
+  });
+  psuTermLabel.position.set(-0.09, -0.20, faceZ + 0.012);
+  g.add(psuTermLabel);
+
+  // 端子カバー(赤・上ヒンジ) — ▼PULL。上端で軸支され、上方へ開く
+  psuCoverPivot = new THREE.Group();
+  psuCoverPivot.position.set(0, 0.115, faceZ + 0.078);
+  g.add(psuCoverPivot);
+  const cov = new THREE.Mesh(new THREE.BoxGeometry(PSU.w*0.99, 0.66, 0.022), M.red);
+  cov.position.y = -0.33;
+  psuCoverPivot.add(cov);
+  const covLb = labelPlane(PSU.w*0.9, 0.1, (g2,w,h)=>{
+    g2.clearRect(0,0,w,h);
+    g2.fillStyle="#fff"; g2.font=`bold ${h*0.55}px Arial`;
+    g2.textAlign="left";  g2.fillText("MELSEC", w*0.03, h*0.7);
+    g2.textAlign="right"; g2.fillText("▼ PULL", w*0.97, h*0.7);
+  });
+  covLb.position.set(0, -0.55, 0.013);
+  psuCoverPivot.add(covLb);
+}
+
+/* ---- R00CPU ---- */
+const CPU = {w:0.30, h:1.06, d:0.84};
+const cpuGrp = new THREE.Group();
+world.add(cpuGrp);
+const cpuSeat = V3(SLOTS.CPU.x, 0, CPU.d/2 + 0.012);
+const cpuFloat = V3(SLOTS.CPU.x + 0.35, 0.95, 1.1);
+cpuGrp.position.copy(cpuFloat);
+cpuGrp.rotation.set(0.2, -0.3, 0);
+
+let cpuLEDs = {};
+{
+  const g = cpuGrp;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(CPU.w, CPU.h, CPU.d), M.charcoal);
+  g.add(body);
+  const faceZ = CPU.d/2 + 0.001;
+  const hdr = new THREE.Mesh(new THREE.BoxGeometry(CPU.w*0.96, 0.40, 0.03), M.black);
+  hdr.position.set(0, CPU.h/2 - 0.21, faceZ);
+  g.add(hdr);
+  const hdrLb = labelPlane(CPU.w*0.92, 0.36, (g2,w,h)=>{
+    g2.clearRect(0,0,w,h);
+    g2.fillStyle="#fff";
+    g2.font=`bold ${h*0.1}px Arial`; g2.textAlign="left";
+    g2.fillText("R00CPU", w*0.06, h*0.13);
+    g2.font=`${h*0.068}px Arial`; g2.fillStyle="#cfd5db";
+    g2.fillText("READY", w*0.06, h*0.28);
+    g2.fillText("ERROR", w*0.55, h*0.28);
+    g2.fillText("P RUN", w*0.06, h*0.42);
+    g2.fillText("USER",  w*0.55, h*0.42);
+    g2.fillStyle="#fff";
+    g2.font=`bold ${h*0.11}px Arial`;
+    g2.fillText("USB", w*0.2, h*0.72);
+    g2.font=`bold ${h*0.08}px Arial`;
+    g2.fillText("▼ PULL", w*0.2, h*0.9);
+  });
+  hdrLb.position.set(0, CPU.h/2 - 0.21, faceZ + 0.017);
+  g.add(hdrLb);
+  // LED (READY / ERROR)
+  const mkLED = (x,y)=>{
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.022,0.012), M.ledOff.clone());
+    m.position.set(x, y, faceZ + 0.018);
+    g.add(m); return m;
+  };
+  cpuLEDs.ready = mkLED(-0.045, CPU.h/2 - 0.115);
+  cpuLEDs.prun  = mkLED(-0.045, CPU.h/2 - 0.165);
+  // 下部ボディ + SDカード風ディテール
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(CPU.w*0.96, 0.5, 0.015), M.darkGray);
+  lower.position.set(0, -0.24, faceZ);
+  g.add(lower);
+}
+
+/* ---- I/Oスロットの空きコネクタは基板側で表現済み ---- */
+
+/* ---- 装着ガイド(半透明ゴースト) ---- */
+function ghostBox(w,h,d,pos){
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshBasicMaterial({color:0xc8102e, transparent:true, opacity:0.12, depthWrite:false})
+  );
+  const e = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(w,h,d)),
+    new THREE.LineBasicMaterial({color:0xc8102e, transparent:true, opacity:0.8})
+  );
+  m.add(e);
+  m.position.copy(pos);
+  m.visible = false;
+  world.add(m);
+  return m;
+}
+const psuGhost = ghostBox(PSU.w, PSU.h, PSU.d, psuSeat);
+const cpuGhost = ghostBox(CPU.w, CPU.h, CPU.d, cpuSeat);
+
+/* ---- 配線(アース線・電源線) ---- */
+const wires = new THREE.Group();
+world.add(wires);
+
+function screwWorld(name){
+  const p = new THREE.Vector3();
+  psuScrews[name].getWorldPosition(p);
+  world.worldToLocal(p);
+  return p;
+}
+function makeWire(points, mat, radius=0.02){
+  const curve = new THREE.CatmullRomCurve3(points);
+  const geo = new THREE.TubeGeometry(curve, 72, radius, 10, false);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.visible = false;
+  wires.add(mesh);
+  return mesh;
+}
+function makeRing(target){ // 丸形圧着端子(リング端子)+絶縁バレル。バレルは左横へ出る
+  const grp = new THREE.Group();
+  // リング部(ねじが中を通る平たいプレス品)
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.048, 0.014, 12, 28), M.copper);
+  ring.scale.z = 0.4;
+  grp.add(ring);
+  // 首部(リングとバレルをつなぐ・左へ)
+  const neck = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.026, 0.018), M.copper);
+  neck.position.set(-0.072, 0, 0);
+  grp.add(neck);
+  // 絶縁バレル(白スリーブ・電線を圧着する部分・左水平)
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.12, 16), M.sleeve);
+  barrel.rotation.z = Math.PI/2;   // 軸をX方向へ(横向き)
+  barrel.position.set(-0.155, 0, 0);
+  grp.add(barrel);
+  grp.position.copy(target);
+  grp.position.z += 0.012;   // ねじ頭の下・カバー裏に収まる程度に浮かせる
+  grp.visible = false;
+  wires.add(grp);
+  return grp;
+}
+
+/* 配線経路を後で(装着後に)構築する */
+let wFG, wLG, wN, wL, rFG, rLG, rN, rL;
+function buildWires(){
+  const pFG = screwWorld("FG"), pLG = screwWorld("LG"), pN = screwWorld("N"), pL = screwWorld("L");
+  const gz = 0.012;
+  // 各端子のバレル左端(電線接続点):ねじ位置の左横。リング端子の高さに合わせる
+  const e = p=>V3(p.x-0.215, p.y, p.z+0.012);
+  wFG = makeWire([
+    V3(pFG.x-0.5,  -1.7,  pFG.z-0.12),
+    V3(pFG.x-0.44, -0.7,  pFG.z+gz),
+    V3(pFG.x-0.34, pFG.y-0.14, pFG.z+gz),
+    e(pFG)
+  ], M.wireGY, 0.02);
+  wLG = makeWire([
+    V3(pLG.x-0.54, -1.7,  pLG.z-0.14),
+    V3(pLG.x-0.47, -0.75, pLG.z+gz),
+    V3(pLG.x-0.36, pLG.y-0.12, pLG.z+gz),
+    e(pLG)
+  ], M.wireGY, 0.02);
+  wN = makeWire([
+    V3(pN.x-0.36, -1.7, pN.z-0.22),
+    V3(pN.x-0.33, -1.0, pN.z+gz),
+    V3(pN.x-0.30, pN.y-0.09, pN.z+gz),
+    e(pN)
+  ], M.wireR, 0.018);
+  wL = makeWire([
+    V3(pL.x-0.3,  -1.7,  pL.z-0.26),
+    V3(pL.x-0.29, -1.05, pL.z+gz),
+    V3(pL.x-0.30, pL.y-0.06, pL.z+gz),
+    e(pL)
+  ], M.wireW, 0.018);
+  rFG = makeRing(pFG); rLG = makeRing(pLG);
+  rN  = makeRing(pN);  rL  = makeRing(pL);
+}
+
+/* 配線出現アニメーション */
+function growWire(tube, rod, screwName, onDone){
+  tube.visible = true;
+  const total = tube.geometry.index.count;
+  tube.geometry.setDrawRange(0, 0);
+  tween(0.9, k=>{
+    tube.geometry.setDrawRange(0, Math.floor(total*k));
+  }, ()=>{
+    tube.geometry.setDrawRange(0, Infinity);
+    rod.visible = true;
+    rod.scale.set(0.01,0.01,0.01);
+    tween(0.25, k=>rod.scale.setScalar(0.01+0.99*k), ()=>{
+      // ねじ締付け
+      const sc = psuScrews[screwName];
+      const z0 = sc.position.z;
+      tween(0.7, k=>{
+        sc.rotation.y = k*Math.PI*4;
+        sc.position.z = z0 - 0.008*easeOut(k);
+      }, onDone);
+    }, easeOut);
+  }, easeOut);
+}
+
+/* ---- ハイライトマーカー ---- */
+const markerTex = canvasTex(128,128,(g,w,h)=>{
+  g.strokeStyle="#c8102e"; g.lineWidth=10;
+  g.beginPath(); g.arc(w/2,h/2,w*0.38,0,Math.PI*2); g.stroke();
+  g.fillStyle="rgba(200,16,46,.25)";
+  g.beginPath(); g.arc(w/2,h/2,w*0.3,0,Math.PI*2); g.fill();
+});
+const marker = new THREE.Sprite(new THREE.SpriteMaterial({map:markerTex, depthTest:false, transparent:true}));
+marker.scale.setScalar(0.3);
+marker.visible = false;
+marker.renderOrder = 999;
+world.add(marker);
+function setMarker(pos, size=0.3){
+  if(!pos){ marker.visible = false; return; }
+  marker.visible = true;
+  marker.position.copy(pos);
+  marker.userData.base = size;
+}
+
+/* =========================================================================
+   カメラ制御(自作オービット・タッチ対応)
+   ========================================================================= */
+const cam = {
+  target: V3(0, 0, 0.3),
+  r: 4.4, theta: 0.5, phi: 1.25, // theta:方位角, phi:天頂角
+};
+function applyCam(){
+  cam.phi = Math.max(0.35, Math.min(1.55, cam.phi));
+  cam.r = Math.max(1.2, Math.min(9, cam.r));
+  camera.position.set(
+    cam.target.x + cam.r*Math.sin(cam.phi)*Math.sin(cam.theta),
+    cam.target.y + cam.r*Math.cos(cam.phi),
+    cam.target.z + cam.r*Math.sin(cam.phi)*Math.cos(cam.theta)
+  );
+  camera.lookAt(cam.target);
+}
+function camTo(target, r, theta, phi, dur=1.1, onDone){
+  const s = {t:cam.target.clone(), r:cam.r, th:cam.theta, ph:cam.phi};
+  tween(dur, k=>{
+    cam.target.lerpVectors(s.t, target, k);
+    cam.r = s.r + (r-s.r)*k;
+    cam.theta = s.th + (theta-s.th)*k;
+    cam.phi = s.ph + (phi-s.ph)*k;
+  }, onDone);
+}
+const HOME = {t:V3(-0.2,-0.05,0.3), r:4.6, th:0.45, ph:1.22};
+
+/* 入力 */
+let dragging=false, moved=0, px=0, py=0, pinch0=0;
+const el = renderer.domElement;
+el.addEventListener("pointerdown", e=>{
+  dragging=true; moved=0; px=e.clientX; py=e.clientY;
+  el.setPointerCapture(e.pointerId);
+});
+el.addEventListener("pointermove", e=>{
+  if(!dragging) return;
+  const dx=e.clientX-px, dy=e.clientY-py;
+  moved += Math.abs(dx)+Math.abs(dy);
+  px=e.clientX; py=e.clientY;
+  cam.theta -= dx*0.0055;
+  cam.phi   -= dy*0.0045;
+});
+el.addEventListener("pointerup", e=>{
+  dragging=false;
+  if(moved < 8) handleTap(e.clientX, e.clientY);
+});
+el.addEventListener("wheel", e=>{
+  e.preventDefault();
+  cam.r *= (1 + Math.sign(e.deltaY)*0.09);
+}, {passive:false});
+el.addEventListener("touchstart", e=>{
+  if(e.touches.length===2){
+    pinch0 = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+  }
+},{passive:true});
+el.addEventListener("touchmove", e=>{
+  if(e.touches.length===2){
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch0>0){ cam.r *= pinch0/d; }
+    pinch0 = d;
+    dragging = false;
+  }
+},{passive:true});
+
+/* レイキャスト */
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let tapTargets = []; // {obj, cb}
+function handleTap(x,y){
+  if(!tapTargets.length) return;
+  ndc.set((x/innerWidth)*2-1, -(y/innerHeight)*2+1);
+  ray.setFromCamera(ndc, camera);
+  for(const t of tapTargets){
+    const hits = ray.intersectObject(t.obj, true);
+    if(hits.length){ const cb=t.cb; tapTargets=[]; setMarker(null); cb(); return; }
+  }
+  // 外れタップ → ヒント
+  const h = document.getElementById("hint");
+  h.classList.add("show");
+  clearTimeout(h._t);
+  h._t = setTimeout(()=>h.classList.remove("show"), 1800);
+}
+
+/* =========================================================================
+   手順シーケンス
+   ========================================================================= */
+const ui = {
+  act: document.getElementById("act"),
+  cap: document.getElementById("cap"),
+  next: document.getElementById("btnNext"),
+  scNow: document.getElementById("scNow"),
+  prog: document.getElementById("prog"),
+};
+function caption(txt){
+  if(!txt){ ui.cap.classList.add("hide"); return; }
+  ui.cap.innerHTML = txt;
+  ui.cap.classList.remove("hide");
+}
+function instruct(tag, main, note){
+  ui.act.innerHTML = `<span class="tag">${tag}</span>${main}${note?`<span class="note">${note}</span>`:""}`;
+}
+function nextBtn(show, label="次へ"){
+  ui.next.style.display = show ? "" : "none";
+  ui.next.textContent = label;
+  ui.next.classList.toggle("pulse", show);
+}
+
+const steps = [
+/* 0 ─ 概要 */
+{
+  code:"00",
+  enter(){
+    camTo(HOME.t, HOME.r, HOME.th, HOME.ph, 1.2);
+    instruct("GUIDE",
+      "MELSEC iQ-R のハードウェア初期立上げを体験します。",
+      "R35B基本ベースはDINレールに取付済み。ここから電源ユニット・CPUユニットの装着と配線を行います。");
+    caption("画面ドラッグで回転 / ピンチ・ホイールでズームできます。");
+    nextBtn(true, "開始");
+  }
+},
+/* 1 ─ 電源ユニット装着 */
+{
+  code:"01",
+  enter(){
+    camTo(V3(-1.15,0.4,0.6), 3.6, 0.5, 1.25, 1.0);
+    psuGhost.visible = true;
+    instruct("装着", "電源ユニット <b>R61P</b> をタップして、ベースの <b>POWER</b> スロットに装着します。",
+      "ユニット上部のフックをベースに掛けてから、下部を押し込みカチッと固定します。");
+    caption("電源ユニットをベースユニットに装着します。");
+    nextBtn(false);
+    setMarker(psuGrp.position.clone().add(V3(0,0,0.5)), 0.42);
+    tapTargets = [{obj:psuGrp, cb:()=>animInsert(psuGrp, psuSeat, psuGhost, ()=>go(2))}];
+  }
+},
+/* 2 ─ CPU装着 */
+{
+  code:"02",
+  enter(){
+    camTo(V3(-0.85,0.4,0.6), 3.5, 0.4, 1.25, 1.0);
+    cpuGhost.visible = true;
+    instruct("装着", "<b>R00CPU</b> をタップして、<b>CPU</b> スロットに装着します。",
+      "CPUユニットは必ずCPUスロットへ。電源OFF状態で着脱するのが原則です。");
+    caption("CPUユニットをベースユニットに装着します。");
+    nextBtn(false);
+    setMarker(cpuGrp.position.clone().add(V3(0,0,0.5)), 0.36);
+    tapTargets = [{obj:cpuGrp, cb:()=>animInsert(cpuGrp, cpuSeat, cpuGhost, ()=>{
+      buildWires(); go(3);
+    })}];
+  }
+},
+/* 3 ─ 端子カバーを開く */
+{
+  code:"03",
+  enter(){
+    camTo(V3(-1.1,-0.2,0.5), 2.3, 0.5, 1.25, 1.0);
+    instruct("配線準備", "電源ユニット下部の端子カバー(<b>▼PULL</b>)をタップして開きます。",
+      "配線作業は必ず電源OFF・遮断器OFFの状態で行います。");
+    caption("電源ユニットへの配線を行います。<br>接地は、感電、誤動作を防止するために行う配線です。");
+    nextBtn(false);
+    const covPos = new THREE.Vector3();
+    psuCoverPivot.children[0].getWorldPosition(covPos);
+    world.worldToLocal(covPos);
+    setMarker(covPos.add(V3(0,0,0.1)), 0.3);
+    tapTargets = [{obj:psuCoverPivot, cb:()=>{
+      tween(0.8, k=>{ psuCoverPivot.rotation.x = k*-2.0; }, ()=>go(4));
+    }}];
+  }
+},
+/* 4 ─ FG接地 */
+{
+  code:"04",
+  enter(){
+    camTo(V3(-1.05,-0.25,0.6), 1.7, 0.62, 1.3, 1.0);
+    instruct("接地配線", "<b>FG端子</b>(3段目のねじ)をタップし、接地線(緑/黄)を接続します。",
+      "電線は棒形圧着端子で処理し、規定トルクで締め付けます(M3.5ねじ)。");
+    caption("FG端子とLG端子を接地します。");
+    nextBtn(false);
+    setMarker(screwWorld("FG").add(V3(0,0,0.06)), 0.2);
+    tapTargets = [{obj:psuHits.FG, cb:()=>growWire(wFG, rFG, "FG", ()=>go(5))}];
+  }
+},
+/* 5 ─ LG接地 */
+{
+  code:"05",
+  enter(){
+    instruct("接地配線", "続いて <b>LG端子</b>(4段目のねじ)をタップし、接地線を接続します。",
+      "LG端子とFG端子は、短絡させた上で必ず接地(D種接地)してください。");
+    caption("LG端子とFG端子は、短絡させた上で必ず接地してください。");
+    nextBtn(false);
+    setMarker(screwWorld("LG").add(V3(0,0,0.06)), 0.2);
+    tapTargets = [{obj:psuHits.LG, cb:()=>growWire(wLG, rLG, "LG", ()=>go(6))}];
+  }
+},
+/* 6 ─ AC電源 N */
+{
+  code:"06",
+  enter(){
+    instruct("電源配線", "<b>N端子</b>(5段目)をタップして、交流電源線(赤)を接続します。",
+      "電源入力は INPUT 100-240VAC。上流にはMCCB(ノーヒューズ遮断器)とCPを設けます。");
+    caption("電源入力端子に交流電源を接続します。<br>(INPUT 100-240VAC)");
+    nextBtn(false);
+    setMarker(screwWorld("N").add(V3(0,0,0.06)), 0.2);
+    tapTargets = [{obj:psuHits.N, cb:()=>growWire(wN, rN, "N", ()=>go(7))}];
+  }
+},
+/* 7 ─ AC電源 L */
+{
+  code:"07",
+  enter(){
+    instruct("電源配線", "<b>L端子</b>(最下段)をタップして、交流電源線(白)を接続します。",
+      "配線完了後は端子ねじの締め忘れ・素線のはみ出しがないか目視確認します。");
+    caption("電源入力端子に交流電源を接続します。<br>(INPUT 100-240VAC)");
+    nextBtn(false);
+    setMarker(screwWorld("L").add(V3(0,0,0.06)), 0.2);
+    tapTargets = [{obj:psuHits.L, cb:()=>growWire(wL, rL, "L", ()=>{
+      // カバーを閉じる
+      delay(0.4, ()=>{
+        tween(0.7, k=>{ psuCoverPivot.rotation.x = -2.0*(1-k); }, ()=>go(8));
+      });
+    })}];
+  }
+},
+/* 8 ─ 電源投入 */
+{
+  code:"08",
+  enter(){
+    camTo(V3(-0.7,0.1,0.4), 3.0, 0.35, 1.15, 1.1);
+    instruct("電源投入", "配線を確認し、<b>電源を投入</b>します。",
+      "POWER LED(緑)点灯 → CPUのREADY LED(緑)点灯を確認します。");
+    caption("電源を投入し、POWER LED・READY LEDの点灯を確認します。");
+    nextBtn(true, "電源投入");
+    ui.next.onclick = ()=>{
+      nextBtn(false);
+      ui.next.onclick = defaultNext;
+      // 電源ON演出
+      delay(0.3, ()=>{
+        psuPowerLED.material = M.ledGreen;
+        flashAt(psuPowerLED);
+        delay(0.8, ()=>{
+          // READY 点滅→点灯
+          let n=0;
+          const blink = ()=>{
+            cpuLEDs.ready.material = (n%2===0) ? M.ledGreen : M.ledOff;
+            n++;
+            if(n<7) delay(0.18, blink);
+            else{
+              cpuLEDs.ready.material = M.ledGreen;
+              cpuLEDs.prun.material = M.ledGreen;
+              delay(0.6, ()=>{
+                document.getElementById("done").style.display = "flex";
+                caption(null);
+              });
+            }
+          };
+          blink();
+        });
+      });
+    };
+  }
+},
+];
+
+let cur = -1;
+function go(i){
+  cur = i;
+  tapTargets = [];
+  setMarker(null);
+  ui.scNow.textContent = steps[i].code;
+  // progress
+  ui.prog.innerHTML = "";
+  steps.forEach((s,j)=>{
+    const b = document.createElement("i");
+    if(j<i) b.className="done";
+    if(j===i) b.className="cur";
+    ui.prog.appendChild(b);
+  });
+  steps[i].enter();
+}
+function defaultNext(){
+  if(cur < steps.length-1) go(cur+1);
+}
+ui.next.onclick = defaultNext;
+
+/* 装着アニメーション */
+function animInsert(grp, seat, ghost, onDone){
+  const p0 = grp.position.clone();
+  const r0 = grp.rotation.clone();
+  // 1) 上部フック位置へ
+  const hook = seat.clone().add(V3(0, 0.28, 0.42));
+  tween(0.7, k=>{
+    grp.position.lerpVectors(p0, hook, k);
+    grp.rotation.set(r0.x*(1-k)+0.35*k, r0.y*(1-k), r0.z*(1-k));
+  }, ()=>{
+    // 2) 回転させながら押し込み
+    const p1 = grp.position.clone();
+    tween(0.55, k=>{
+      grp.position.lerpVectors(p1, seat, k);
+      grp.rotation.x = 0.35*(1-k);
+    }, ()=>{
+      ghost.visible = false;
+      // カチッ(スケールパルス)
+      tween(0.18, k=>{
+        const s = 1 + 0.03*Math.sin(k*Math.PI);
+        grp.scale.setScalar(s);
+      }, ()=>{ grp.scale.setScalar(1); flashAt(grp); onDone(); });
+    });
+  });
+}
+/* クリック時のフラッシュ */
+function flashAt(obj){
+  const p = new THREE.Vector3();
+  obj.getWorldPosition ? obj.getWorldPosition(p) : p.copy(obj.position);
+  world.worldToLocal(p);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:markerTex, transparent:true, depthTest:false}));
+  s.position.copy(p); s.scale.setScalar(0.1); s.renderOrder=998;
+  world.add(s);
+  tween(0.5, k=>{
+    s.scale.setScalar(0.1+0.7*k);
+    s.material.opacity = 1-k;
+  }, ()=>world.remove(s), easeOut);
+}
+
+/* ツールボタン */
+document.getElementById("btnView").onclick = ()=>camTo(HOME.t, HOME.r, HOME.th, HOME.ph, 0.9);
+document.getElementById("btnReset").onclick = ()=>location.reload();
+document.getElementById("btnAgain").onclick = ()=>location.reload();
+document.getElementById("btnFree").onclick = ()=>{
+  document.getElementById("done").style.display="none";
+  instruct("FREE", "自由観察モード:ドラッグで回転、ピンチでズーム。", "「最初から」でもう一度手順を練習できます。");
+  nextBtn(false);
+  camTo(V3(-0.2,0,0.3), 4.2, -0.4, 1.1, 1.4);
+};
+
+/* =========================================================================
+   ループ
+   ========================================================================= */
+const clock = new THREE.Clock();
+function loop(){
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  tick(dt);
+  // 浮遊ユニットのゆらぎ
+  const t = clock.elapsedTime;
+  if(cur===1 && tapTargets.length) psuGrp.position.y = psuFloat.y + Math.sin(t*1.6)*0.03;
+  if(cur===2 && tapTargets.length) cpuGrp.position.y = cpuFloat.y + Math.sin(t*1.6+1)*0.03;
+  // マーカー脈動
+  if(marker.visible){
+    const b = marker.userData.base || 0.3;
+    marker.scale.setScalar(b*(1+0.14*Math.sin(t*5)));
+  }
+  applyCam();
+  renderer.render(scene, camera);
+}
+addEventListener("resize", ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  fitFov();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+applyCam();
+go(0);
+loop();
+</script>
+</body>
+</html>
