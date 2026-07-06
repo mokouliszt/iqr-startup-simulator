@@ -745,7 +745,10 @@ el.addEventListener("pointerup", e=>{
 });
 el.addEventListener("wheel", e=>{
   e.preventDefault();
-  cam.r *= (1 + Math.sign(e.deltaY)*0.09);
+  // deltaMode: 0=ピクセル, 1=行, 2=ページ を実量に正規化
+  const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
+  const dy = Math.max(-120, Math.min(120, e.deltaY * unit));
+  cam.r *= Math.exp(dy * 0.0012);
 }, {passive:false});
 el.addEventListener("touchstart", e=>{
   if(e.touches.length===2){
