@@ -10,9 +10,7 @@
 
 三菱電機 MELSEC iQ-R シリーズ（R33B 基本ベース／R61P 電源ユニット／R00CPU）の**ハードウェア初期立上げ**を、ブラウザ上の 3D 操作で学べる学習用シミュレータです。ユニットのベースへの装着、端子カバーの開閉、丸形圧着端子による接地・電源配線、電源投入と LED 確認までを、実機の手順に沿って一連で体験できます。
 
-<a href="https://mokouliszt.github.io/iqr-startup-simulator/">
-  <img src="https://img.shields.io/badge/▶%20シミュレーションサイトを開く"-c8102e?style=flat-square&labelColor=15171a&color=c8102e&logo=googlechrome&logoColor=white" height="40" alt="シミュレーションサイトを開く" />
-</a>
+シミュレータページ: https://mokouliszt.github.io/iqr-startup-simulator/
 
 ## スクリーンショット
 
